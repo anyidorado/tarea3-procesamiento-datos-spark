@@ -1,51 +1,96 @@
-# tarea3-procesamiento-datos-spark
 Tarea 3: Procesamiento de datos con Apache Spark
 
-Descripción del proyecto
+1. Descripción del proyecto
 
-Este proyecto tiene como objetivo aplicar herramientas de procesamiento de grandes volúmenes de datos mediante Apache Spark, utilizando Python para analizar un conjunto de datos históricos de la Tasa Representativa del Mercado (TRM) de Colombia.
+Este proyecto desarrolla procesos de análisis de datos por lotes (batch processing) y procesamiento de datos en tiempo real (stream processing) mediante herramientas del ecosistema Big Data. Se utiliza Apache Spark para analizar datos históricos de la Tasa Representativa del Mercado (TRM) de Colombia y Apache Kafka junto con Spark Streaming para procesar datos simulados generados por sensores.
 
-La actividad incluye el procesamiento por lotes (batch) y el procesamiento de datos en tiempo real mediante la integración de Apache Kafka y Spark Structured Streaming.
+2. Objetivos
 
-Problema seleccionado
+* Cargar, limpiar y transformar datos históricos de la TRM.
+* Realizar análisis exploratorio utilizando Apache Spark.
+* Identificar valores mínimos, máximos, promedios y registros por año.
+* Implementar un flujo de datos en tiempo real con Apache Kafka y Spark Streaming.
+* Observar y analizar los resultados del procesamiento mediante la consola y la interfaz web de Spark.
 
-Se busca explorar y analizar los valores históricos de la TRM para identificar registros, consultar estadísticas descriptivas y ordenar los valores de mayor a menor, utilizando herramientas de procesamiento distribuido.
+3. Tecnologías utilizadas
 
-Conjunto de datos
+* Apache Hadoop y HDFS: almacenamiento distribuido del archivo histórico.
+* Apache Spark: procesamiento y análisis de datos por lotes.
+* Apache Kafka: transmisión de mensajes de sensores simulados.
+* Spark Structured Streaming: procesamiento continuo de los mensajes recibidos.
+* Python: desarrollo de los scripts de procesamiento.
+* Ubuntu Server: entorno de ejecución del proyecto.
 
-Se utiliza un archivo CSV denominado query.csv, obtenido de una fuente de datos abiertos de Colombia y almacenado en HDFS para su procesamiento con Apache Spark.
+4. Conjunto de datos para procesamiento batch
 
-Tecnologías utilizadas
+Se utiliza un archivo CSV con registros históricos de la Tasa Representativa del Mercado (TRM) de Colombia, obtenido de una fuente de datos abiertos y almacenado en HDFS en la ruta:
 
-* Apache Spark.
-* Python y PySpark.
-* Hadoop Distributed File System (HDFS).
-* Apache Kafka.
-* Spark Structured Streaming.
-* GitHub para el almacenamiento y la documentación del código fuente.
+hdfs://localhost:9000/Tarea3/query.csv
 
-Procesamiento por lotes
+El archivo contiene columnas como valor, unidad, vigenciadesde y vigenciahasta.
 
-El archivo tarea3.py realiza las siguientes operaciones:
+5. Procesamiento por lotes con Spark
 
-1. Carga el conjunto de datos desde HDFS.
-2. Muestra el esquema y los primeros registros.
-3. Calcula estadísticas descriptivas.
-4. Filtra los registros cuyo valor de la TRM es superior a 5000.
-5. Ordena los registros de mayor a menor valor.
+El script tarea3.py realiza las siguientes operaciones:
 
-Ejecución
+1. Carga el archivo CSV desde HDFS.
+2. Inspecciona el esquema y cuenta los registros.
+3. Normaliza los nombres de las columnas.
+4. Elimina filas duplicadas y descarta registros con valores TRM nulos o no positivos.
+5. Convierte el valor de la TRM a tipo numérico y las fechas a tipo fecha.
+6. Calcula estadísticas descriptivas y valores promedio, mínimo y máximo.
+7. Identifica registros con TRM superior a 5.000.
+8. Ordena los registros de mayor a menor.
+9. Calcula el promedio y la cantidad de registros por año.
 
-Para ejecutar el procesamiento por lotes en un entorno que tenga Apache Spark configurado y acceso al archivo en HDFS, se utiliza el siguiente comando:
+Resultados obtenidos
 
-spark-submit tarea3.py
+En la ejecución de prueba se procesaron inicialmente 8.343 registros. Después de aplicar la limpieza, se conservaron los 8.343 registros y no se detectaron valores nulos en las columnas examinadas.
 
-La ruta configurada en el código es hdfs://localhost:9000/Tarea3/query.csv, por lo que el archivo debe estar disponible en esa ubicación.
+* Promedio de la TRM: aproximadamente 2.370,20.
+* Valor mínimo: 620,62.
+* Valor máximo: 5.061,21.
+* Registros con TRM superior a 5.000: 5.
+
+Estos resultados corresponden a la versión del conjunto de datos utilizada durante la ejecución.
+
+6. Procesamiento en tiempo real con Kafka y Spark Streaming
+
+Para la segunda parte se implementa un productor en Python que genera datos simulados de sensores, con identificador, temperatura, humedad y marca de tiempo. Los mensajes se publican en el tópico sensor_data de Apache Kafka.
+
+El consumidor desarrollado con Spark Structured Streaming recibe los mensajes, interpreta su estructura JSON, convierte la marca de tiempo y calcula promedios de temperatura y humedad agrupados por sensor y ventana de un minuto.
+
+Los datos de sensores son simulados con fines académicos; no corresponden a mediciones de dispositivos físicos.
+
+7. Archivos del proyecto
+
+* tarea3.py: script de procesamiento batch de los datos históricos de TRM.
+* kafka_producer.py: productor de mensajes simulados para Kafka.
+* spark_streaming_consumer.py: consumidor y análisis de datos en tiempo real.
+* README.md: documentación general del proyecto.
+
+8. Ejecución
+
+Procesamiento batch
+
+Con Hadoop y HDFS iniciados y el archivo disponible en la ruta indicada, ejecutar:
+
+spark-submit ~/tarea3.py
 
 Procesamiento en tiempo real
 
-Como parte de la actividad se configura el tema sensor_data en Apache Kafka. Un productor genera datos simulados de sensores y Spark Structured Streaming consume los registros para calcular promedios de temperatura y humedad.
+Primero deben iniciarse los servicios de Kafka y crearse el tópico sensor_data, según la configuración del entorno.
 
-Resultados esperados
+Ejecutar el productor:
 
-El procesamiento por lotes permite consultar estadísticas y registros históricos de la TRM. El procesamiento en tiempo real permite observar la recepción y el análisis continuo de datos simulados de sensores.
+python3 kafka_producer.py
+
+En otra terminal, ejecutar el consumidor con el conector Kafka compatible con Spark 3.5.1:
+
+spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 spark_streaming_consumer.py
+
+El consumidor mostrará en la consola los resultados de las ventanas de procesamiento.
+
+9. Conclusión
+
+La actividad permitió aplicar herramientas del ecosistema Big Data para dos escenarios complementarios: el análisis de información histórica mediante procesamiento por lotes y el procesamiento continuo de datos simulados mediante Kafka y Spark Structured Streaming. Los resultados evidencian cómo estas tecnologías permiten transformar datos, calcular estadísticas y observar información durante su procesamiento.
